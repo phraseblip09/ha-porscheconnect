@@ -22,10 +22,12 @@ from homeassistant.const import (
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .pyporscheconnectapi.vehicle import PorscheVehicle
 
 from . import DOMAIN as PORSCHE_DOMAIN
+from .lease import CONF_LEASE, LeaseFigures, calculate
 from . import (
     PorscheBaseEntity,
     PorscheConnectDataUpdateCoordinator,
@@ -280,7 +282,88 @@ async def async_setup_entry(
         if description.is_available(vehicle)
     ]
 
+    leases = config_entry.options.get(CONF_LEASE, {})
+    entities += [
+        PorscheLeaseSensor(coordinator, vehicle, description)
+        for vehicle in coordinator.vehicles
+        if vehicle.vin in leases
+        for description in LEASE_SENSOR_TYPES
+    ]
+
     async_add_entities(entities)
+
+
+@dataclass(frozen=True)
+class PorscheLeaseSensorEntityDescription(SensorEntityDescription):
+    """Lease sensor: value taken from the calculated LeaseFigures."""
+
+    lease_fn: Callable[[LeaseFigures], object] = lambda f: None
+
+
+def _km(key: str, icon: str, fn, **kwargs) -> PorscheLeaseSensorEntityDescription:
+    return PorscheLeaseSensorEntityDescription(
+        key=key,
+        translation_key=key,
+        icon=icon,
+        lease_fn=fn,
+        native_unit_of_measurement=UnitOfLength.KILOMETERS,
+        suggested_display_precision=0,
+        **kwargs,
+    )
+
+
+LEASE_SENSOR_TYPES: list[PorscheLeaseSensorEntityDescription] = [
+    _km("lease_km_driven", "mdi:counter", lambda f: f.driven,
+        device_class=SensorDeviceClass.DISTANCE, state_class=SensorStateClass.TOTAL_INCREASING),
+    _km("lease_km_balance", "mdi:scale-balance", lambda f: f.balance, state_class=SensorStateClass.MEASUREMENT),
+    _km("lease_km_remaining", "mdi:map-marker-distance", lambda f: f.remaining, state_class=SensorStateClass.MEASUREMENT),
+    _km("lease_km_pace", "mdi:speedometer", lambda f: f.pace_per_year, state_class=SensorStateClass.MEASUREMENT),
+    _km("lease_km_forecast", "mdi:crystal-ball", lambda f: f.forecast_excess, state_class=SensorStateClass.MEASUREMENT),
+    PorscheLeaseSensorEntityDescription(
+        key="lease_cost_forecast",
+        translation_key="lease_cost_forecast",
+        icon="mdi:cash",
+        lease_fn=lambda f: f.forecast_cost,
+        device_class=SensorDeviceClass.MONETARY,
+        suggested_display_precision=0,
+    ),
+    PorscheLeaseSensorEntityDescription(
+        key="lease_end",
+        translation_key="lease_end",
+        icon="mdi:calendar-end",
+        lease_fn=lambda f: f.end_date,
+        device_class=SensorDeviceClass.DATE,
+    ),
+]
+
+
+class PorscheLeaseSensor(PorscheBaseEntity, SensorEntity):
+    """Lease mileage figure derived from the odometer and the configured lease."""
+
+    entity_description: PorscheLeaseSensorEntityDescription
+
+    def __init__(self, coordinator, vehicle: PorscheVehicle, description: PorscheLeaseSensorEntityDescription) -> None:
+        """Initialise the lease sensor (unique ID based on the VIN, so it never changes)."""
+        super().__init__(coordinator, vehicle)
+        self.entity_description = description
+        self._attr_unique_id = f"{vehicle.vin}-{description.key}"
+        if description.device_class == SensorDeviceClass.MONETARY:
+            self._attr_native_unit_of_measurement = coordinator.hass.config.currency
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        lease = self.coordinator.config_entry.options.get(CONF_LEASE, {}).get(self.vehicle.vin)
+        figures = calculate(lease, self.vehicle.mileage, dt_util.now().date())
+        self._attr_native_value = self.entity_description.lease_fn(figures) if figures else None
+        if figures and self.entity_description.key == "lease_km_balance":
+            self._attr_extra_state_attributes = {
+                "contract_year": figures.contract_year,
+                "days_elapsed": figures.days_elapsed,
+                "days_total": figures.days_total,
+                "allowance_to_date": figures.allowance_to_date,
+                "allowance_total": figures.allowance_total,
+            }
+        super()._handle_coordinator_update()
 
 
 class PorscheSensor(PorscheBaseEntity, SensorEntity):

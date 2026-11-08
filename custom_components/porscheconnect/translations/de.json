@@ -1,0 +1,56 @@
+{
+    "options": {
+        "abort": {
+            "not_loaded": "Die Integration ist noch nicht geladen - bitte in einer Minute erneut versuchen."
+        },
+        "error": {
+            "invalid_lease": "Bitte Vertragsbeginn, km-Stand bei Beginn, km pro Jahr und Laufzeit ausfüllen."
+        },
+        "step": {
+            "init": {
+                "title": "Leasing-Kilometer",
+                "description": "Fahrzeug wählen.",
+                "data": {
+                    "vin": "Fahrzeug"
+                }
+            },
+            "lease": {
+                "title": "Leasing-Kilometer: {vehicle}",
+                "description": "Die Sensoren vergleichen den Kilometerstand mit dem km-Budget des Leasingvertrags.",
+                "data": {
+                    "start_date": "Vertragsbeginn",
+                    "start_km": "Kilometerstand bei Vertragsbeginn",
+                    "annual_km": "Freikilometer pro Jahr",
+                    "term_months": "Laufzeit (Monate)",
+                    "excess_price": "Preis pro Mehrkilometer (optional)",
+                    "remove": "Leasing-Auswertung für dieses Fahrzeug entfernen"
+                }
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "lease_km_driven": {
+                "name": "Leasing gefahrene km"
+            },
+            "lease_km_balance": {
+                "name": "Leasing Mehr-km aktuell"
+            },
+            "lease_km_remaining": {
+                "name": "Leasing Rest-km"
+            },
+            "lease_km_pace": {
+                "name": "Leasing km pro Jahr (Hochrechnung)"
+            },
+            "lease_km_forecast": {
+                "name": "Leasing Mehr-km Prognose Vertragsende"
+            },
+            "lease_cost_forecast": {
+                "name": "Leasing Mehrkosten Prognose"
+            },
+            "lease_end": {
+                "name": "Leasing Vertragsende"
+            }
+        }
+    }
+}

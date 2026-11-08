@@ -13,6 +13,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.httpx_client import get_async_client
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
@@ -30,6 +31,7 @@ from .pyporscheconnectapi.exceptions import (
 from .pyporscheconnectapi.vehicle import PorscheVehicle
 
 from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, PLATFORMS, TRANSIENT_AUTH_FIELDS
+from .lease import CONF_LEASE, STORE_KEY, STORE_VERSION
 
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=DEFAULT_SCAN_INTERVAL)
@@ -103,6 +105,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     await coordinator.async_config_entry_first_refresh()
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
+    await _async_restore_lease_settings(hass, entry, coordinator)
+
     await hass.config_entries.async_forward_entry_setups(
         entry,
         list(PLATFORMS),
@@ -115,6 +119,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     setup_services(hass, entry)
 
     return True
+
+
+def lease_store(hass: HomeAssistant) -> Store:
+    """Lease settings per VIN, kept outside the config entry so they survive re-adding an account."""
+    return Store(hass, STORE_VERSION, STORE_KEY)
+
+
+async def _async_restore_lease_settings(hass: HomeAssistant, entry: ConfigEntry, coordinator) -> None:
+    """Copy lease settings of this account's vehicles back from the store into the options."""
+    stored = await lease_store(hass).async_load() or {}
+    current = dict(entry.options.get(CONF_LEASE, {}))
+    missing = {
+        v.vin: stored[v.vin]
+        for v in coordinator.vehicles
+        if v.vin in stored and v.vin not in current
+    }
+    if missing:
+        _LOGGER.info("Restoring lease settings for %d vehicle(s)", len(missing))
+        hass.config_entries.async_update_entry(
+            entry,
+            options={**entry.options, CONF_LEASE: current | missing},
+        )
 
 
 class PorscheConnectDataUpdateCoordinator(DataUpdateCoordinator):
@@ -152,6 +178,15 @@ class PorscheConnectDataUpdateCoordinator(DataUpdateCoordinator):
                 for vehicle in self.vehicles:
                     await vehicle.get_stored_overview()
                     await vehicle.get_picture_locations()
+
+                incomplete = [v.vin for v in self.vehicles if "name" not in v.data or "modelName" not in v.data]
+                if incomplete:
+                    # The API sometimes answers the first overview with an incomplete record (e.g. HTTP 429).
+                    # Setting up entities from it would crash with KeyError 'name'; start over next time
+                    # instead (HA retries the setup with backoff).
+                    self.vehicles = []
+                    msg = f"Incomplete vehicle data for {len(incomplete)} vehicle(s), retrying later"
+                    raise UpdateFailed(msg)
 
             else:
                 async with asyncio.timeout(30):

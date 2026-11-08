@@ -7,6 +7,8 @@
 > - Captcha / wrong password now cleanly trigger a **re-authentication** in HA instead of polling forever.
 > - **Captcha login fixed**: the Auth0 session cookies are kept between the password and the captcha step (before, the captcha was always rejected as "invalid authentication").
 > - **Tyre pressure sensor stays**: a parked car often sends no tyre readings; the sensor now shows "unknown" instead of disappearing (or claiming "OK").
+> - **Lease mileage**: Configure → per vehicle lease start, odometer at start, km per year, term (and optionally the price per extra km). Adds sensors for km driven, km over budget today, km remaining, yearly pace, forecast at the end of the term and the forecast cost. The settings are also kept per VIN outside the config entry, so they survive deleting and re-adding the account.
+> - **Start-up hardening**: an incomplete first answer from the API (e.g. HTTP 429) no longer crashes the setup with `KeyError: 'name'`; HA retries instead.
 > - `tools/check.py` tests the library in 10 s without HA; `DEBUGGING.md` is the recipe for the next outage.
 >
 > Installation via the Marketplace/HACS: add the custom repository `https://github.com/phraseblip09/ha-porscheconnect` (type Integration), uninstall the original, install this fork, restart HA. The Marketplace only lets you remove the original after its config entries are deleted, so the accounts have to be added again – HA then may derive new entity IDs from the device names. Note the old IDs first and rename them back afterwards so automations and dashboards keep working.

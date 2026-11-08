@@ -18,52 +18,96 @@
                     "email": "Email"
                 }
             },
-		    "captcha": {
-		        "title": "Captcha verification",
-		        "description": "{captcha_img}",
-		        "data": {
-		            "captcha_code": "Captcha code"
-		        }
-		    }
+            "captcha": {
+                "title": "Captcha verification",
+                "description": "{captcha_img}",
+                "data": {
+                    "captcha_code": "Captcha code"
+                }
+            }
         }
     },
     "entity": {
         "button": {
-            "flash_indicators": {"name": "Flash indicators"},
-            "honk_and_flash_indicators": {"name": "Honk and flash indicators"},
-            "get_current_overview": {"name": "Get current vehicle information"}
+            "flash_indicators": {
+                "name": "Flash indicators"
+            },
+            "honk_and_flash_indicators": {
+                "name": "Honk and flash indicators"
+            },
+            "get_current_overview": {
+                "name": "Get current vehicle information"
+            }
         },
         "binary_sensor": {
-            "parking_brake": {"name": "Parking brake"},
-            "parking_light": {"name": "Parking light"},
-            "privacy_mode": {"name": "Privacy mode"},
-            "doors_and_lids": {"name": "Doors and lids"},
+            "parking_brake": {
+                "name": "Parking brake"
+            },
+            "parking_light": {
+                "name": "Parking light"
+            },
+            "privacy_mode": {
+                "name": "Privacy mode"
+            },
+            "doors_and_lids": {
+                "name": "Doors and lids"
+            },
             "tire_pressure_status": {
-				"name": "Tire pressure status",
+                "name": "Tire pressure status",
                 "state": {
                     "on": "Warning",
                     "off": "Ok"
                 }
-			},
-            "remote_access": {"name": "Remote access"}
+            },
+            "remote_access": {
+                "name": "Remote access"
+            }
         },
         "image": {
-            "front_view": {"name": "View from the front"},
-            "side_view": {"name": "View from the side"},
-            "rear_view": {"name": "View from the rear"},
-            "rear_top_view": {"name": "View diagonally from above"},
-            "top_view": {"name": "View from above"}
+            "front_view": {
+                "name": "View from the front"
+            },
+            "side_view": {
+                "name": "View from the side"
+            },
+            "rear_view": {
+                "name": "View from the rear"
+            },
+            "rear_top_view": {
+                "name": "View diagonally from above"
+            },
+            "top_view": {
+                "name": "View from above"
+            }
         },
         "sensor": {
-            "vin": { "name": "VIN" },
-            "model_year": { "name": "Model year" },
-            "main_service_range": { "name": "Next service in" },
-            "main_service_time": { "name": "Next service in (days)" },
-            "oil_service_range": { "name": "Next oil change in" },
-            "oil_service_time": { "name": "Next oil change in (days)" },
-            "intermediate_service_range": { "name": "Intermediate service in" },
-            "intermediate_service_time": { "name": "Intermediate service in (days)" },
-            "oil_level": { "name": "Oil level" },
+            "vin": {
+                "name": "VIN"
+            },
+            "model_year": {
+                "name": "Model year"
+            },
+            "main_service_range": {
+                "name": "Next service in"
+            },
+            "main_service_time": {
+                "name": "Next service in (days)"
+            },
+            "oil_service_range": {
+                "name": "Next oil change in"
+            },
+            "oil_service_time": {
+                "name": "Next oil change in (days)"
+            },
+            "intermediate_service_range": {
+                "name": "Intermediate service in"
+            },
+            "intermediate_service_time": {
+                "name": "Intermediate service in (days)"
+            },
+            "oil_level": {
+                "name": "Oil level"
+            },
             "charging_power": {
                 "name": "Charging power"
             },
@@ -97,17 +141,40 @@
                     "charging": "Charging",
                     "charging_completed": "Charging completed",
                     "charging_error": "Charging error",
-					"charging_stopped": "Charging stopped",
+                    "charging_stopped": "Charging stopped",
                     "initialising": "Initialising charging",
                     "instant_charging": "Instant charging",
                     "not_charging": "Not charging",
                     "not_plugged": "Not connected",
                     "off": "Charging off"
                 }
+            },
+            "lease_km_driven": {
+                "name": "Lease km driven"
+            },
+            "lease_km_balance": {
+                "name": "Lease km over budget"
+            },
+            "lease_km_remaining": {
+                "name": "Lease km remaining"
+            },
+            "lease_km_pace": {
+                "name": "Lease km per year (pace)"
+            },
+            "lease_km_forecast": {
+                "name": "Lease km over at end (forecast)"
+            },
+            "lease_cost_forecast": {
+                "name": "Lease excess cost (forecast)"
+            },
+            "lease_end": {
+                "name": "Lease end"
             }
         },
         "number": {
-            "target_soc": {"name": "Target state of charge"}
+            "target_soc": {
+                "name": "Target state of charge"
+            }
         },
         "lock": {
             "lock": {
@@ -115,8 +182,12 @@
             }
         },
         "switch": {
-            "climatise": {"name": "Remote climatisation"},
-            "direct_charging": {"name": "Direct charging"}
+            "climatise": {
+                "name": "Remote climatisation"
+            },
+            "direct_charging": {
+                "name": "Direct charging"
+            }
         }
     },
     "services": {
@@ -135,7 +206,7 @@
                 "front_left": {
                     "name": "Seat heating front left",
                     "description": "If front left seat heater should be activated (default off)"
-                }, 
+                },
                 "front_right": {
                     "name": "Seat heating front right",
                     "description": "If front right seat heater should be activated (default off)"
@@ -147,6 +218,35 @@
                 "rear_right": {
                     "name": "Seat heating rear right",
                     "description": "If rear right seat heater should be activated (default off)"
+                }
+            }
+        }
+    },
+    "options": {
+        "abort": {
+            "not_loaded": "The integration is not loaded yet - try again in a minute."
+        },
+        "error": {
+            "invalid_lease": "Please fill in start date, odometer at start, km per year and term."
+        },
+        "step": {
+            "init": {
+                "title": "Lease mileage",
+                "description": "Choose the vehicle.",
+                "data": {
+                    "vin": "Vehicle"
+                }
+            },
+            "lease": {
+                "title": "Lease mileage: {vehicle}",
+                "description": "The sensors compare the odometer with the km allowance of the lease.",
+                "data": {
+                    "start_date": "Lease start",
+                    "start_km": "Odometer at lease start",
+                    "annual_km": "Allowance per year",
+                    "term_months": "Term (months)",
+                    "excess_price": "Price per extra km (optional)",
+                    "remove": "Remove lease tracking for this vehicle"
                 }
             }
         }

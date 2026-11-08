@@ -427,7 +427,9 @@ class PorscheVehicle:
 
             bdata = {k: self.status[k] for k in BASE_DATA if k in self.status}
 
-            bdata["name"] = self.status["customName"] if "customName" in self.status else bdata["modelName"]
+            name = self.status.get("customName") or bdata.get("modelName")
+            if name:
+                bdata["name"] = name
 
             _LOGGER.debug(
                 "Got base data for vehicle '%s': %s",

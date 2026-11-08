@@ -10,11 +10,18 @@ from homeassistant import exceptions
 from homeassistant.config_entries import (
     SOURCE_REAUTH,
     SOURCE_RECONFIGURE,
+    ConfigEntry,
     ConfigFlow,
     ConfigFlowResult,
 )
 from homeassistant.const import CONF_ACCESS_TOKEN, CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import callback
+from homeassistant.helpers import selector
+
+try:  # HA 2025.8+: reloads the entry only when the options really change
+    from homeassistant.config_entries import OptionsFlowWithReload as _OptionsFlowBase
+except ImportError:  # pragma: no cover - older cores
+    from homeassistant.config_entries import OptionsFlow as _OptionsFlowBase
 from .pyporscheconnectapi.connection import Connection
 from .pyporscheconnectapi.exceptions import (
     PorscheCaptchaRequiredError,
@@ -29,6 +36,15 @@ from .const import (
     CONF_OAUTH_STATE,
     DOMAIN,
     TRANSIENT_AUTH_FIELDS,
+)
+from .lease import (
+    CONF_ANNUAL_KM,
+    CONF_EXCESS_PRICE,
+    CONF_LEASE,
+    CONF_START_DATE,
+    CONF_START_KM,
+    CONF_TERM_MONTHS,
+    parse_config,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -96,6 +112,12 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
     state = None
     code_verifier = None
     cookies = None
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> PorscheOptionsFlow:
+        """Options: lease mileage tracking per vehicle."""
+        return PorscheOptionsFlow()
 
     @callback
     def _get_entry_for_current_flow(self):
@@ -331,6 +353,97 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
                 "captcha_img": '<img src="' + self.captcha + '" />',
             },
         )
+
+
+CONF_VIN = "vin"
+CONF_REMOVE = "remove"
+_KM = selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=1_000_000, step=1, mode="box", unit_of_measurement="km"))
+
+
+class PorscheOptionsFlow(_OptionsFlowBase):
+    """Configure the lease (km allowance) of each vehicle."""
+
+    vin: str | None = None
+
+    def _vehicles(self) -> dict[str, str]:
+        coordinator = self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id)
+        if coordinator is None:
+            return {}
+        return {v.vin: v.data.get("name", v.vin) for v in coordinator.vehicles}
+
+    async def async_step_init(self, user_input=None) -> ConfigFlowResult:
+        """Pick the vehicle (skipped when the account has only one)."""
+        vehicles = self._vehicles()
+        if not vehicles:
+            return self.async_abort(reason="not_loaded")
+        if user_input is not None:
+            self.vin = user_input[CONF_VIN]
+            return await self.async_step_lease()
+        if len(vehicles) == 1:
+            self.vin = next(iter(vehicles))
+            return await self.async_step_lease()
+        options = [selector.SelectOptionDict(value=vin, label=name) for vin, name in vehicles.items()]
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {vol.Required(CONF_VIN): selector.SelectSelector(selector.SelectSelectorConfig(options=options))},
+            ),
+        )
+
+    async def async_step_lease(self, user_input=None) -> ConfigFlowResult:
+        """Lease start, odometer at start, yearly allowance, term and optional price per extra km."""
+        leases = dict(self.config_entry.options.get(CONF_LEASE, {}))
+        errors = {}
+        if user_input is not None:
+            if user_input.get(CONF_REMOVE):
+                leases.pop(self.vin, None)
+                await self._async_store(remove=True)
+                return self.async_create_entry(data={**self.config_entry.options, CONF_LEASE: leases})
+            cfg = {key: value for key, value in user_input.items() if key != CONF_REMOVE}
+            if parse_config(cfg) is None:
+                errors["base"] = "invalid_lease"
+            else:
+                leases[self.vin] = cfg
+                await self._async_store(cfg)
+                return self.async_create_entry(data={**self.config_entry.options, CONF_LEASE: leases})
+
+        current = user_input or leases.get(self.vin, {})
+
+        def default(key):
+            return {"suggested_value": current[key]} if current.get(key) not in (None, "") else {}
+
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_START_DATE, description=default(CONF_START_DATE)): selector.DateSelector(),
+                vol.Required(CONF_START_KM, description=default(CONF_START_KM)): _KM,
+                vol.Required(CONF_ANNUAL_KM, description=default(CONF_ANNUAL_KM)): _KM,
+                vol.Required(CONF_TERM_MONTHS, description=default(CONF_TERM_MONTHS)): selector.NumberSelector(
+                    selector.NumberSelectorConfig(min=1, max=120, step=1, mode="box"),
+                ),
+                vol.Optional(CONF_EXCESS_PRICE, description=default(CONF_EXCESS_PRICE)): selector.NumberSelector(
+                    selector.NumberSelectorConfig(min=0, max=10, step=0.001, mode="box"),
+                ),
+                vol.Optional(CONF_REMOVE, default=False): selector.BooleanSelector(),
+            },
+        )
+        return self.async_show_form(
+            step_id="lease",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={"vehicle": self._vehicles().get(self.vin, self.vin)},
+        )
+
+    async def _async_store(self, cfg: dict | None = None, *, remove: bool = False) -> None:
+        """Mirror the lease into the integration store (survives deleting and re-adding the account)."""
+        from . import lease_store
+
+        store = lease_store(self.hass)
+        data = await store.async_load() or {}
+        if remove:
+            data.pop(self.vin, None)
+        else:
+            data[self.vin] = cfg
+        await store.async_save(data)
 
 
 class InvalidAuth(exceptions.HomeAssistantError):
