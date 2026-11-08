@@ -197,11 +197,11 @@ class PorscheVehicle:
         return dict(map(dict.popitem, dl))
 
     @property
-    def tire_pressure_status(self) -> bool:
-        """Return true if tire pressure is within the tolerances."""
+    def tire_pressure_status(self) -> bool | None:
+        """Return true if tire pressure is within the tolerances, None if no reading is available."""
         differences = [abs(tp["difference"]) for tp in (self.tire_pressures or {}).values() if tp.get("difference") is not None]
         if not differences:
-            return True
+            return None
         return max(differences) <= TIRE_PRESSURE_TOLERANCE
 
     @property
@@ -220,8 +220,19 @@ class PorscheVehicle:
 
     @property
     def has_tire_pressure_monitoring(self) -> bool:
-        """Return True if the vehicle reports any tyre pressure measurement."""
-        return any(key.startswith("TIRE_PRESSURE_") and isinstance(value, dict) for key, value in self.data.items())
+        """Return True if the vehicle supports tyre pressure monitoring.
+
+        A parked car often reports the TIRE_PRESSURE_* measurements without a value. They are
+        still listed as enabled, so the sensor is created and simply shows "unknown" until the
+        car sends readings again (instead of silently disappearing).
+        """
+        if any(key.startswith("TIRE_PRESSURE_") and isinstance(value, dict) for key, value in self.data.items()):
+            return True
+        return any(
+            str(m.get("key", "")).startswith("TIRE_PRESSURE_") and m.get("status", {}).get("isEnabled")
+            for m in self.status.get("measurements", [])
+            if isinstance(m, dict)
+        )
 
     @property
     def charging_target(self) -> bool | None:

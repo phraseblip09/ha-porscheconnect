@@ -13,6 +13,7 @@ from homeassistant.components.binary_sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .pyporscheconnectapi.vehicle import PorscheVehicle
 
@@ -81,7 +82,7 @@ SENSOR_TYPES: list[PorscheBinarySensorEntityDescription] = [
         name="Tire pressure status",
         key="tire_pressure_status",
         translation_key="tire_pressure_status",
-        value_fn=lambda v: not v.tire_pressure_status,
+        value_fn=lambda v: None if v.tire_pressure_status is None else not v.tire_pressure_status,
         attr_fn=lambda v: {
             f"{pos}_{field}": val
             for pos, reading in (v.tire_pressures or {}).items()
@@ -103,11 +104,18 @@ async def async_setup_entry(
         config_entry.entry_id
     ]
 
+    registry = er.async_get(hass)
+
+    def known(vehicle: PorscheVehicle, description: PorscheBinarySensorEntityDescription) -> bool:
+        """Keep entities that existed before, even if the car sends no data for them right now."""
+        unique_id = f"{vehicle.data['name']}-{description.key}"
+        return registry.async_get_entity_id("binary_sensor", PORSCHE_DOMAIN, unique_id) is not None
+
     entities = [
         PorscheBinarySensor(coordinator, vehicle, description)
         for vehicle in coordinator.vehicles
         for description in SENSOR_TYPES
-        if description.is_available(vehicle)
+        if description.is_available(vehicle) or known(vehicle, description)
     ]
 
     async_add_entities(entities)
