@@ -16,12 +16,13 @@ from homeassistant.config_entries import (
 )
 from homeassistant.const import CONF_ACCESS_TOKEN, CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import callback
-from pyporscheconnectapi.connection import Connection
-from pyporscheconnectapi.exceptions import (
+from .pyporscheconnectapi.connection import Connection
+from .pyporscheconnectapi.exceptions import (
     PorscheCaptchaRequiredError,
     PorscheExceptionError,
     PorscheWrongCredentialsError,
 )
+from .pyporscheconnectapi.oauth2 import LOGIN_BACKOFF
 
 from .const import (
     CONF_CAPTCHA_CODE,
@@ -43,6 +44,9 @@ async def validate_input(data):
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
     token = {}
+    # A human is driving this flow (new login, captcha, password change):
+    # never block it with the automatic login backoff.
+    LOGIN_BACKOFF.reset(data[CONF_EMAIL])
     try:
         conn = Connection(
             email=data[CONF_EMAIL],

@@ -11,8 +11,8 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
-from pyporscheconnectapi.exceptions import PorscheExceptionError
-from pyporscheconnectapi.vehicle import PorscheVehicle
+from .pyporscheconnectapi.exceptions import PorscheExceptionError
+from .pyporscheconnectapi.vehicle import PorscheVehicle
 
 from . import (
     PorscheConnectDataUpdateCoordinator,

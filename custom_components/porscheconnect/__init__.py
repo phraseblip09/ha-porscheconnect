@@ -10,6 +10,7 @@ from functools import reduce
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ACCESS_TOKEN, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.typing import ConfigType
@@ -18,10 +19,15 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
 )
-from pyporscheconnectapi.account import PorscheConnectAccount
-from pyporscheconnectapi.connection import Connection
-from pyporscheconnectapi.exceptions import PorscheExceptionError
-from pyporscheconnectapi.vehicle import PorscheVehicle
+from .pyporscheconnectapi.account import PorscheConnectAccount
+from .pyporscheconnectapi.connection import Connection
+from .pyporscheconnectapi.exceptions import (
+    PorscheCaptchaRequiredError,
+    PorscheExceptionError,
+    PorscheLoginBackoffError,
+    PorscheWrongCredentialsError,
+)
+from .pyporscheconnectapi.vehicle import PorscheVehicle
 
 from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, PLATFORMS, TRANSIENT_AUTH_FIELDS
 
@@ -152,9 +158,20 @@ class PorscheConnectDataUpdateCoordinator(DataUpdateCoordinator):
                     for vehicle in self.vehicles:
                         await vehicle.get_stored_overview()
 
+        except PorscheCaptchaRequiredError as exc:
+            # Only a human can solve this: stop polling and ask for re-authentication
+            # (HA shows a repair/notification and opens the config flow with the captcha).
+            msg = "Porsche Connect requires a captcha - please re-authenticate"
+            raise ConfigEntryAuthFailed(msg) from exc
+        except PorscheWrongCredentialsError as exc:
+            msg = "Porsche Connect rejected the credentials - please re-authenticate"
+            raise ConfigEntryAuthFailed(msg) from exc
+        except PorscheLoginBackoffError as exc:
+            msg = f"Login paused after repeated failures, retrying in {exc.retry_in}s"
+            raise UpdateFailed(msg) from exc
         except PorscheExceptionError as exc:
-            msg = "Error communicating with API: %s"
-            raise UpdateFailed(msg, exc) from exc
+            msg = f"Error communicating with API: {exc.message or exc}"
+            raise UpdateFailed(msg) from exc
         else:
             accesstoken = copy.deepcopy(self.controller.token)
 

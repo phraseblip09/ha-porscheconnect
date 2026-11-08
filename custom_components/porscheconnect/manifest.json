@@ -1,12 +1,12 @@
 {
   "domain": "porscheconnect",
   "name": "Porsche Connect",
-  "codeowners": ["@cjne"],
+  "codeowners": ["@phraseblip09"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/CJNE/ha-porscheconnect",
+  "documentation": "https://github.com/phraseblip09/ha-porscheconnect",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/CJNE/ha-porscheconnect/issues",
-  "requirements": ["pyporscheconnectapi==0.2.9"],
-  "version": "0.1.11"
+  "issue_tracker": "https://github.com/phraseblip09/ha-porscheconnect/issues",
+  "requirements": ["beautifulsoup4>=4.12"],
+  "version": "0.2.0"
 }

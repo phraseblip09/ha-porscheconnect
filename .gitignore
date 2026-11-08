@@ -5,3 +5,5 @@ pythonenv*
 venv
 .venv
 .direnv
+
+tools/token.json

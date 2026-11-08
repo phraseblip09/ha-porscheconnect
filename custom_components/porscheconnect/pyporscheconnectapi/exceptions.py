@@ -1,0 +1,83 @@
+#  SPDX-License-Identifier: Apache-2.0
+"""Exceptions used for Porsche Connect API."""
+
+import logging
+
+_LOGGER = logging.getLogger(__name__)
+
+
+class PorscheExceptionError(Exception):
+    """Class of Porsche API exceptions."""
+
+    def __init__(self, code=None, *args, response_body=None, request_url=None, **kwargs) -> None:
+        """Initialize exceptions for the Porsche API."""
+        self.message = ""
+        self.response_body = response_body
+        self.request_url = request_url
+        super().__init__(*args, **kwargs)
+        if code is not None:
+            self.code = code
+            if isinstance(code, str):
+                self.message = self.code
+                return
+            if self.code == 400:
+                self.message = "BAD_REQUEST"
+            elif self.code == 401:
+                self.message = "UNAUTHORIZED"
+            elif self.code == 404:
+                self.message = "NOT_FOUND"
+            elif self.code == 405:
+                self.message = "MOBILE_ACCESS_DISABLED"
+            elif self.code == 408:
+                self.message = "VEHICLE_UNAVAILABLE"
+            elif self.code == 423:
+                self.message = "ACCOUNT_LOCKED"
+            elif self.code == 429:
+                self.message = "TOO_MANY_REQUESTS"
+            elif self.code == 500:
+                self.message = "SERVER_ERROR"
+            elif self.code == 503:
+                self.message = "SERVICE_MAINTENANCE"
+            elif self.code == 504:
+                self.message = "UPSTREAM_TIMEOUT"
+            elif self.code > 299:
+                self.message = f"UNKNOWN_ERROR_{self.code}"
+
+        if self.response_body:
+            self.message = f"{self.message}: {self.response_body}"
+
+
+class PorscheWrongCredentialsError(PorscheExceptionError):
+    """Class of exceptions for incomplete credentials."""
+
+
+class PorscheCaptchaRequiredError(PorscheExceptionError):
+    """Class of exception when captcha verification is required."""
+
+    captcha: str = None
+    state: str = None
+    code_verifier: str = None
+
+    def __init__(self, captcha=None, state=None, code_verifier=None):
+        """Initialize the captcha exception."""
+        if captcha is not None and state is not None:
+            _LOGGER.debug("Initialising captcha exception, state %s", state)
+            self.captcha = captcha
+            self.state = state
+            self.code_verifier = code_verifier
+
+        super().__init__(captcha, state)
+
+
+class PorscheLoginBackoffError(PorscheExceptionError):
+    """Raised when a login is refused locally because of recent failed logins."""
+
+    def __init__(self, retry_in: int, failures: int):
+        """Initialize the backoff exception."""
+        self.retry_in = retry_in
+        self.failures = failures
+        super().__init__(f"LOGIN_BACKOFF: {failures} failed login(s), next attempt allowed in {retry_in}s")
+
+
+class PorscheRemoteServiceError(PorscheExceptionError):
+    """Error when executing remote services."""

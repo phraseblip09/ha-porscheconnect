@@ -8,8 +8,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from pyporscheconnectapi.exceptions import PorscheExceptionError
-from pyporscheconnectapi.vehicle import PorscheVehicle
+from .pyporscheconnectapi.exceptions import PorscheExceptionError
+from .pyporscheconnectapi.vehicle import PorscheVehicle
 
 from . import (
     PorscheBaseEntity,

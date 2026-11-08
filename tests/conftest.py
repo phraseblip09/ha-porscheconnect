@@ -4,8 +4,8 @@ import copy
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from pyporscheconnectapi.exceptions import PorscheExceptionError
-from pyporscheconnectapi.vehicle import PorscheVehicle
+from custom_components.porscheconnect.pyporscheconnectapi.exceptions import PorscheExceptionError
+from custom_components.porscheconnect.pyporscheconnectapi.vehicle import PorscheVehicle
 
 MOCK_VEHICLE_DATA = {
     "vin": "WPTAYCAN",
@@ -64,7 +64,7 @@ def mock_connection():
     """Return one vehicle without making Porsche API requests."""
     vehicle = create_vehicle()
     with patch(
-        "pyporscheconnectapi.account.PorscheConnectAccount.get_vehicles",
+        "custom_components.porscheconnect.pyporscheconnectapi.account.PorscheConnectAccount.get_vehicles",
         AsyncMock(return_value=[vehicle]),
     ):
         yield vehicle
@@ -74,7 +74,7 @@ def mock_connection():
 def mock_connection_error():
     """Raise an API error while loading vehicles."""
     with patch(
-        "pyporscheconnectapi.account.PorscheConnectAccount.get_vehicles",
+        "custom_components.porscheconnect.pyporscheconnectapi.account.PorscheConnectAccount.get_vehicles",
         AsyncMock(side_effect=PorscheExceptionError("Test")),
     ):
         yield
@@ -84,7 +84,7 @@ def mock_connection_error():
 def mock_lock_lock(mock_connection):
     """Mock locking a vehicle."""
     with patch(
-        "pyporscheconnectapi.remote_services.RemoteServices.lock_vehicle",
+        "custom_components.porscheconnect.pyporscheconnectapi.remote_services.RemoteServices.lock_vehicle",
         AsyncMock(),
     ) as mock_lock:
         yield mock_lock
@@ -94,7 +94,7 @@ def mock_lock_lock(mock_connection):
 def mock_lock_unlock(mock_connection):
     """Mock unlocking a vehicle."""
     with patch(
-        "pyporscheconnectapi.remote_services.RemoteServices.unlock_vehicle",
+        "custom_components.porscheconnect.pyporscheconnectapi.remote_services.RemoteServices.unlock_vehicle",
         AsyncMock(),
     ) as mock_unlock:
         yield mock_unlock
@@ -104,7 +104,7 @@ def mock_lock_unlock(mock_connection):
 def mock_set_charging_level(mock_connection):
     """Mock changing the target state of charge."""
     with patch(
-        "pyporscheconnectapi.remote_services.RemoteServices.set_target_soc",
+        "custom_components.porscheconnect.pyporscheconnectapi.remote_services.RemoteServices.set_target_soc",
         AsyncMock(),
     ) as set_level:
         yield set_level
@@ -114,7 +114,7 @@ def mock_set_charging_level(mock_connection):
 def mock_set_climate_on(mock_connection):
     """Mock starting climatisation."""
     with patch(
-        "pyporscheconnectapi.remote_services.RemoteServices.climatise_on",
+        "custom_components.porscheconnect.pyporscheconnectapi.remote_services.RemoteServices.climatise_on",
         AsyncMock(),
     ) as climate_on:
         yield climate_on
@@ -124,7 +124,7 @@ def mock_set_climate_on(mock_connection):
 def mock_set_climate_off(mock_connection):
     """Mock stopping climatisation."""
     with patch(
-        "pyporscheconnectapi.remote_services.RemoteServices.climatise_off",
+        "custom_components.porscheconnect.pyporscheconnectapi.remote_services.RemoteServices.climatise_off",
         AsyncMock(),
     ) as climate_off:
         yield climate_off
@@ -134,7 +134,7 @@ def mock_set_climate_off(mock_connection):
 def mock_set_charge_on(mock_connection):
     """Mock enabling direct charging."""
     with patch(
-        "pyporscheconnectapi.remote_services.RemoteServices.direct_charge_on",
+        "custom_components.porscheconnect.pyporscheconnectapi.remote_services.RemoteServices.direct_charge_on",
         AsyncMock(),
     ) as charge_on:
         yield charge_on
@@ -144,7 +144,7 @@ def mock_set_charge_on(mock_connection):
 def mock_set_charge_off(mock_connection):
     """Mock disabling direct charging."""
     with patch(
-        "pyporscheconnectapi.remote_services.RemoteServices.direct_charge_off",
+        "custom_components.porscheconnect.pyporscheconnectapi.remote_services.RemoteServices.direct_charge_off",
         AsyncMock(),
     ) as charge_off:
         yield charge_off
@@ -154,7 +154,7 @@ def mock_set_charge_off(mock_connection):
 def mock_climatisation_start(mock_connection):
     """Mock the climatisation service action."""
     with patch(
-        "pyporscheconnectapi.remote_services.RemoteServices.climatise_on",
+        "custom_components.porscheconnect.pyporscheconnectapi.remote_services.RemoteServices.climatise_on",
         AsyncMock(),
     ) as climate_on:
         yield climate_on

@@ -8,7 +8,7 @@ from custom_components.porscheconnect.const import DOMAIN
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
-from pyporscheconnectapi.exceptions import PorscheExceptionError
+from custom_components.porscheconnect.pyporscheconnectapi.exceptions import PorscheExceptionError
 
 from . import (
     create_mock_porscheconnect_config_entry,

@@ -1,3 +1,14 @@
+> **Fork of [CJNE/ha-porscheconnect](https://github.com/CJNE/ha-porscheconnect)** – so that outages can be fixed right away.
+>
+> Differences from the original:
+> - The `pyporscheconnectapi` library is **vendored** (`custom_components/porscheconnect/pyporscheconnectapi/`) instead of coming from PyPI – one repo, one fix, one update.
+> - **zstd fix**: `Accept-Encoding: gzip, deflate` on all requests (since HA 2026.11 Porsche returns undecodable zstd frames, see upstream #398/#453).
+> - **Login backoff**: after failed logins the integration waits with increasing delays (1 min → 1 h) instead of driving the account into a captcha lock with repeated logins.
+> - Captcha / wrong password now cleanly trigger a **re-authentication** in HA instead of polling forever.
+> - `tools/check.py` tests the library in 10 s without HA; `DEBUGGING.md` is the recipe for the next outage.
+>
+> Installation via the Marketplace/HACS: add the custom repository `https://github.com/phraseblip09/ha-porscheconnect` (type Integration), uninstall the original, install this fork, restart HA. Entity IDs stay the same.
+
 # Porsche Connect
 
 [![GitHub Release][releases-shield]][releases]
