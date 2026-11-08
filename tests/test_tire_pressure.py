@@ -23,9 +23,22 @@ def test_listed_without_value_still_counts_as_monitoring():
     assert v.tire_pressure_status is None  # shown as "unknown", not "OK"
 
 
-def test_disabled_measurement_means_no_monitoring():
-    v = _vehicle([{"key": "TIRE_PRESSURE_FRONT_LEFT", "status": {"isEnabled": False}}])
-    assert v.has_tire_pressure_monitoring is False
+def test_temporary_error_still_counts_as_monitoring():
+    # real payload of a parked Taycan: disabled with cause UNKNOWN / code 41A12
+    v = _vehicle([{"key": "TIRE_PRESSURE_FRONT_LEFT",
+                   "status": {"isEnabled": False, "cause": "UNKNOWN", "code": "41A12", "errorReason": "DEFAULT"}}])
+    assert v.has_tire_pressure_monitoring is True
+    assert v.tire_pressure_status is None
+
+
+def test_not_supported_means_no_monitoring():
+    for cause in ("NOT_SUPPORTED", "LICENSE_DEACTIVATED"):
+        v = _vehicle([{"key": "TIRE_PRESSURE_FRONT_LEFT", "status": {"isEnabled": False, "cause": cause}}])
+        assert v.has_tire_pressure_monitoring is False
+
+
+def test_not_listed_means_no_monitoring():
+    assert _vehicle([]).has_tire_pressure_monitoring is False
 
 
 def test_readings_within_and_outside_tolerance():

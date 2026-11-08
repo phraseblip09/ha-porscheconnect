@@ -26,6 +26,10 @@ def _parse_porsche_datetime(datetime_str: str) -> datetime.datetime:
     return datetime.datetime.fromisoformat(datetime_str)
 
 
+# Measurement causes that mean "this car does not have it" (as opposed to a temporary gap).
+NO_SUPPORT_CAUSES = ("NOT_SUPPORTED", "LICENSE_DEACTIVATED")
+
+
 class PorscheVehicle:
     """Representation of a Porsche Connect vehicle."""
 
@@ -222,14 +226,16 @@ class PorscheVehicle:
     def has_tire_pressure_monitoring(self) -> bool:
         """Return True if the vehicle supports tyre pressure monitoring.
 
-        A parked car often reports the TIRE_PRESSURE_* measurements without a value. They are
-        still listed as enabled, so the sensor is created and simply shows "unknown" until the
-        car sends readings again (instead of silently disappearing).
+        The car often reports the TIRE_PRESSURE_* measurements without a value, e.g. as
+        ``isEnabled: false`` with ``cause: UNKNOWN`` (code 41A12) while it is parked. Only
+        ``NOT_SUPPORTED`` / ``LICENSE_DEACTIVATED`` mean there is no tyre monitoring; otherwise the
+        sensor is created and shows "unknown" until readings come back (instead of disappearing).
         """
         if any(key.startswith("TIRE_PRESSURE_") and isinstance(value, dict) for key, value in self.data.items()):
             return True
         return any(
-            str(m.get("key", "")).startswith("TIRE_PRESSURE_") and m.get("status", {}).get("isEnabled")
+            str(m.get("key", "")).startswith("TIRE_PRESSURE_")
+            and (m.get("status", {}).get("isEnabled") or m.get("status", {}).get("cause") not in NO_SUPPORT_CAUSES)
             for m in self.status.get("measurements", [])
             if isinstance(m, dict)
         )
