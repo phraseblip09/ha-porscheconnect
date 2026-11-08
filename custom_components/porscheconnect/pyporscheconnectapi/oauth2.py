@@ -523,6 +523,7 @@ class OAuth2Client:
                 captcha=captcha_img,
                 state=state,
                 code_verifier=self.code_verifier,
+                cookies=[(c.name, c.value, c.domain, c.path) for c in self.client.cookies.jar],
             )
 
         # 2. /u/login/password w/ password

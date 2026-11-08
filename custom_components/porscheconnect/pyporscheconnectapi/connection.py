@@ -60,6 +60,7 @@ class Connection:
         token=None,
         leeway: int = 60,
         code_verifier: str | None = None,
+        cookies: list | None = None,
     ) -> None:
         """Initialise the connection to the Porsche Connect API."""
         if token is None:
@@ -67,6 +68,9 @@ class Connection:
         if async_client is None:
             async_client = httpx.AsyncClient()
         self.asyncClient = async_client
+        # Restore the Auth0 session of a login that was interrupted by a captcha.
+        for name, value, domain, path in cookies or []:
+            self.asyncClient.cookies.set(name, value, domain=domain, path=path)
         self.token_lock = asyncio.Lock()
 
         self.token = OAuth2Token(token)

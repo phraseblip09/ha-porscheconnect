@@ -55,6 +55,7 @@ async def validate_input(data):
             state=data.get(CONF_OAUTH_STATE),
             code_verifier=data.get(CONF_CODE_VERIFIER),
             token=token,
+            cookies=data.get("cookies"),
         )
     except PorscheExceptionError as exc:
         _LOGGER.debug("Exception %s", exc)
@@ -70,6 +71,7 @@ async def validate_input(data):
             "captcha": exc.captcha,
             CONF_OAUTH_STATE: exc.state,
             CONF_CODE_VERIFIER: exc.code_verifier,
+            "cookies": exc.cookies,
         }
     except PorscheWrongCredentialsError as exc:
         _LOGGER.info("Wrong credentials.")
@@ -95,6 +97,7 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
     captcha = None
     state = None
     code_verifier = None
+    cookies = None
 
     @callback
     def _get_entry_for_current_flow(self):
@@ -161,6 +164,7 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
                 self.captcha = info.get("captcha")
                 self.state = info.get("state")
                 self.code_verifier = info.get("code_verifier")
+                self.cookies = info.get("cookies")
                 return self._async_form_captcha()
             entry_data = self._get_entry_data(
                 user_input[CONF_EMAIL],
@@ -248,6 +252,7 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_CAPTCHA_CODE: user_input[CONF_CAPTCHA_CODE],
                 CONF_OAUTH_STATE: self.state,
                 CONF_CODE_VERIFIER: self.code_verifier,
+                "cookies": self.cookies,
             }
             errors = {}
             try:
@@ -258,6 +263,7 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
                     self.captcha = info.get("captcha")
                     self.state = info.get("state")
                     self.code_verifier = info.get("code_verifier")
+                    self.cookies = info.get("cookies")
                     return self._async_form_captcha()
 
                 entry_data = self._get_entry_data(
@@ -288,21 +294,14 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
                 )
 
             except InvalidAuth:
+                # The captcha/login transaction is used up after a failed attempt:
+                # showing the same image again can never succeed. Start over so
+                # the next attempt gets a fresh Auth0 transaction and captcha.
                 errors["base"] = "invalid_auth"
                 return self.async_show_form(
-                    step_id="captcha",
-                    data_schema=vol.Schema(
-                        {
-                            vol.Required(
-                                CONF_CAPTCHA_CODE,
-                                default=vol.UNDEFINED,
-                            ): str,
-                        },
-                    ),
+                    step_id="user",
+                    data_schema=STEP_USER_DATA_SCHEMA,
                     errors=errors,
-                    description_placeholders={
-                        "captcha_img": '<img src="' + self.captcha + '" />',
-                    },
                 )
 
         return self._async_form_captcha()

@@ -57,14 +57,22 @@ class PorscheCaptchaRequiredError(PorscheExceptionError):
     captcha: str = None
     state: str = None
     code_verifier: str = None
+    cookies: list = None
 
-    def __init__(self, captcha=None, state=None, code_verifier=None):
-        """Initialize the captcha exception."""
+    def __init__(self, captcha=None, state=None, code_verifier=None, cookies=None):
+        """Initialize the captcha exception.
+
+        ``cookies`` holds the Auth0 session cookies of the login transaction
+        (list of (name, value, domain, path)). The captcha answer must be sent
+        with the same cookies, otherwise Auth0 no longer knows the transaction
+        and redirects to my.porsche.com instead of returning an auth code.
+        """
         if captcha is not None and state is not None:
             _LOGGER.debug("Initialising captcha exception, state %s", state)
             self.captcha = captcha
             self.state = state
             self.code_verifier = code_verifier
+            self.cookies = cookies or []
 
         super().__init__(captcha, state)
 
